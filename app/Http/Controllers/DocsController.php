@@ -46,29 +46,16 @@ class DocsController extends Controller
     {
         if (! $this->isVersion($version)) {
             return redirect('docs/'.DEFAULT_VERSION.'/'.$version, 301);
-        }
-
-        if (! defined('CURRENT_VERSION')) {
+        } elseif (! is_null($page)) {
+            return redirect('/docs/'.$version);
+        } elseif (! defined('CURRENT_VERSION')) {
             define('CURRENT_VERSION', $version);
         }
 
         $sectionPage = $page ?: 'installation';
-        $content = $this->docs->get($version, $sectionPage);
-
-        if (is_null($content)) {
-            abort(404);
-        }
-
+        $content = $this->docs->get($version, $sectionPage) ?: abort(404);
         $title = (new Crawler($content))->filterXPath('//h1');
-
-        $section = '';
-
-        if ($this->docs->sectionExists($version, $page)) {
-            $section .= '/'.$page;
-        } elseif (! is_null($page)) {
-            return redirect('/docs/'.$version);
-        }
-
+        $section = $this->getSection($version, $page);
         $canonical = $this->getCanonical($sectionPage);
 
         return view('docs', [
@@ -94,6 +81,19 @@ class DocsController extends Controller
             return 'docs/'.DEFAULT_VERSION.'/'.$sectionPage;
 
         return null;
+    }
+
+    /**
+     * Returns section
+     *
+     * @param $version
+     * @param $page
+     * @return string
+     */
+    protected function getSection($version, $page)
+    {
+       if ($this->docs->sectionExists($version, $page)) return  '/'.$page;
+       return '';
     }
 
     /**
