@@ -14,6 +14,8 @@ class DocsController extends Controller
      */
     protected $docs;
 
+
+
     /**
      * Create a new controller instance.
      *
@@ -46,20 +48,18 @@ class DocsController extends Controller
     {
         if (! $this->isVersion($version)) {
             return redirect('docs/'.DEFAULT_VERSION.'/'.$version, 301);
-        } elseif (! is_null($page)) {
-            return redirect('/docs/'.$version);
         } elseif (! defined('CURRENT_VERSION')) {
             define('CURRENT_VERSION', $version);
         }
 
         $sectionPage = $page ?: 'installation';
         $content = $this->docs->get($version, $sectionPage) ?: abort(404);
-        $title = (new Crawler($content))->filterXPath('//h1');
-        $section = $this->getSection($version, $page);
+        $title = $this->getTitleFromContent($content);
+        $section = $this->getSectionOrRedirectToDefault($version, $page);
         $canonical = $this->getCanonical($sectionPage);
 
         return view('docs', [
-            'title' => count($title) ? $title->text() : null,
+            'title' => $title,
             'index' => $this->docs->getIndex($version),
             'content' => $content,
             'currentVersion' => $version,
@@ -68,6 +68,19 @@ class DocsController extends Controller
             'canonical' => $canonical,
         ]);
     }
+
+    /**
+     * Returns title from content h1 tag
+     *
+     * @param $content
+     * @return string
+     */
+    protected function getTitleFromContent($content)
+    {
+        $parsed = (new Crawler($content))->filterXPath('//h1');
+        return count($parsed) ? $parsed->text() : null;
+    }
+
 
     /**
      * Returns canonical
@@ -84,6 +97,20 @@ class DocsController extends Controller
     }
 
     /**
+     * Returns section or redirects to default documentation page
+     *
+     * @param $version
+     * @param $page
+     * @return string
+     */
+    protected function getSectionOrRedirectToDefault($version, $page)
+    {
+        $section = $this->getSection($version, $page);
+        if (!$section && !is_null($page)) $this->redirectToDefault($version);
+        return $section;
+    }
+
+    /**
      * Returns section
      *
      * @param $version
@@ -92,8 +119,18 @@ class DocsController extends Controller
      */
     protected function getSection($version, $page)
     {
-       if ($this->docs->sectionExists($version, $page)) return  '/'.$page;
-       return '';
+        if ($this->docs->sectionExists($version, $page)) return '/'.$page;
+        return '';
+    }
+
+    /**
+     * Redirects to default documentation page
+     *
+     * @param $version
+     */
+    protected function redirectToDefault($version)
+    {
+        abort(302, '', ['Location' => '/docs/'.$version]);
     }
 
     /**
