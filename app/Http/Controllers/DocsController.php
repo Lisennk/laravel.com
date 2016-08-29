@@ -38,6 +38,8 @@ class DocsController extends Controller
     /**
      * Show a documentation page.
      *
+     * @param  string $version
+     * @param  string|null $page
      * @return Response
      */
     public function show($version, $page = null)
@@ -67,11 +69,7 @@ class DocsController extends Controller
             return redirect('/docs/'.$version);
         }
 
-        $canonical = null;
-
-        if ($this->docs->sectionExists(DEFAULT_VERSION, $sectionPage)) {
-            $canonical = 'docs/'.DEFAULT_VERSION.'/'.$sectionPage;
-        }
+        $canonical = $this->getCanonical($sectionPage);
 
         return view('docs', [
             'title' => count($title) ? $title->text() : null,
@@ -82,6 +80,20 @@ class DocsController extends Controller
             'currentSection' => $section,
             'canonical' => $canonical,
         ]);
+    }
+
+    /**
+     * Returns canonical
+     *
+     * @param $sectionPage
+     * @return null|string
+     */
+    protected function getCanonical($sectionPage)
+    {
+        if ($this->docs->sectionExists(DEFAULT_VERSION, $sectionPage))
+            return 'docs/'.DEFAULT_VERSION.'/'.$sectionPage;
+
+        return null;
     }
 
     /**
