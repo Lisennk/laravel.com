@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Documentation;
 use Symfony\Component\DomCrawler\Crawler;
 
+/**
+ * Documentation controller
+ *
+ * @package App\Http\Controllers
+ */
 class DocsController extends Controller
 {
     /**
@@ -13,8 +18,6 @@ class DocsController extends Controller
      * @var Documentation
      */
     protected $docs;
-
-
 
     /**
      * Create a new controller instance.
@@ -54,18 +57,15 @@ class DocsController extends Controller
 
         $sectionPage = $page ?: 'installation';
         $content = $this->docs->get($version, $sectionPage) ?: abort(404);
-        $title = $this->getTitleFromContent($content);
-        $section = $this->getSectionOrRedirectToDefault($version, $page);
-        $canonical = $this->getCanonical($sectionPage);
 
         return view('docs', [
-            'title' => $title,
+            'title' => $this->getTitleFromContent($content),
             'index' => $this->docs->getIndex($version),
             'content' => $content,
             'currentVersion' => $version,
             'versions' => Documentation::getDocVersions(),
-            'currentSection' => $section,
-            'canonical' => $canonical,
+            'currentSection' => $this->getSectionOrRedirectToDefault($version, $page),
+            'canonical' => $this->getCanonical($sectionPage),
         ]);
     }
 
@@ -80,7 +80,6 @@ class DocsController extends Controller
         $parsed = (new Crawler($content))->filterXPath('//h1');
         return count($parsed) ? $parsed->text() : null;
     }
-
 
     /**
      * Returns canonical
